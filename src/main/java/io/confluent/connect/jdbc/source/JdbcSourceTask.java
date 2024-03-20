@@ -74,6 +74,8 @@ public class JdbcSourceTask extends SourceTask {
 
   int maxRetriesPerQuerier;
 
+  private boolean hasCompletedTableQuery = false;
+
   public JdbcSourceTask() {
     this.time = new SystemTime();
   }
@@ -459,7 +461,7 @@ public class JdbcSourceTask extends SourceTask {
 
     Map<TableQuerier, Integer> consecutiveEmptyResults = tableQueue.stream().collect(
         Collectors.toMap(Function.identity(), (q) -> 0));
-    while (running.get()) {
+    while (running.get() && !hasCompletedTableQuery) {
       final TableQuerier querier = tableQueue.peek();
 
       if (!querier.querying()) {
@@ -491,6 +493,7 @@ public class JdbcSourceTask extends SourceTask {
         if (!hadNext) {
           // If we finished processing the results from the current query, we can reset and send
           // the querier to the tail of the queue
+          hasCompletedTableQuery = true;
           resetAndRequeueHead(querier, false);
         }
 
